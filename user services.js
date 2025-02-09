@@ -2,7 +2,6 @@ const express = require('express');
 const mysql = require('mysql2');
 const app = express();
 app.use(express.json());
-
 // Database connection
 const db = mysql.createConnection({
     host: '192.168.233.133 ', 
@@ -10,7 +9,6 @@ const db = mysql.createConnection({
     password: 'paul@1972',
     database: 'fitness_tracker'
 });
-
 // Test database connection
 db.connect((err) => {
     if (err) {
@@ -19,8 +17,16 @@ db.connect((err) => {
     }
     console.log('Connected to database successfully');
 });
-
-
+// Get all user profiles
+app.get('/api/profiles', (req, res) => {
+    db.query('SELECT * FROM users', (err, results) => {
+        if (err) {
+            console.error('Error fetching profiles:', err);
+            return res.status(500).json({ error: err.message });
+        }
+        res.json(results);
+    });
+});
 // Get specific user profile
 app.get('/api/profiles/:id', (req, res) => {
     db.query('SELECT * FROM users WHERE id = ?', [req.params.id], (err, results) => {
@@ -34,7 +40,6 @@ app.get('/api/profiles/:id', (req, res) => {
         res.json(results[0]);
     });
 });
-
 // Create new user profile
 app.post('/api/profiles', (req, res) => {
     const { name, age, weight, height } = req.body;
@@ -43,7 +48,6 @@ app.post('/api/profiles', (req, res) => {
     if (!name || !age || !weight || !height) {
         return res.status(400).json({ error: 'All fields are required' });
     }
-
     const user = { name, age, weight, height };
     
     db.query('INSERT INTO users SET ?', user, (err, result) => {
@@ -57,12 +61,10 @@ app.post('/api/profiles', (req, res) => {
         });
     });
 });
-
 // Update user profile
 app.put('/api/profiles/:id', (req, res) => {
     const { name, age, weight, height } = req.body;
     const userId = req.params.id;
-
     db.query(
         'UPDATE users SET ? WHERE id = ?',
         [{ name, age, weight, height }, userId],
@@ -78,7 +80,6 @@ app.put('/api/profiles/:id', (req, res) => {
         }
     );
 });
-
 // Start the server
 app.listen(3002, () => {
     console.log('User Profile Service running on port 3002');

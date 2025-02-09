@@ -16,3 +16,17 @@ const userServiceProxy = createProxyMiddleware('/api/profiles', {
     target: `http://${VM2_IP}:3002`,
     changeOrigin: true
 });
+
+const progressServiceProxy = createProxyMiddleware('/api/progress', {
+    target: `http://${VM3_IP}:3003`,
+    changeOrigin: true
+});
+
+// Use proxies
+app.use('/api/exercises', exerciseServiceProxy);
+app.use('/api/profiles', userServiceProxy);
+app.use('/api/progress', progressServiceProxy);
+
+app.listen(8080, () => {
+    console.log('API Gateway running on port 8080');
+});
