@@ -1,31 +1,57 @@
 const express = require('express');
-const { createProxyMiddleware } = require('http-proxy-middleware');
+const httpProxy = require('http-proxy');
 const app = express();
 
+// Create proxy server
+const proxy = httpProxy.createProxyServer();
 
-const VM2_IP = '192.168.233.134'; 
-const VM3_IP = 'localhost'; 
-
-const exerciseServiceProxy = createProxyMiddleware('/api/exercises', {
-    target: `http://${VM2_IP}:3001`,
-    changeOrigin: true
+// Simple logging
+app.use((req, res, next) => {
+    console.log('Incoming request:', req.method, req.url);
+    next();
 });
 
-const userServiceProxy = createProxyMiddleware('/api/profiles', {
-    target: `http://${VM2_IP}:3002`,
-    changeOrigin: true
+// Test route
+app.get('/test', (req, res) => {
+    res.json({ message: 'Gateway is working' });
 });
 
-const progressServiceProxy = createProxyMiddleware('/api/progress', {
-    target: `http://${VM3_IP}:3003`,
-    changeOrigin: true
+// Route handlers for each service - Remove the /* from paths
+app.all('/api/profiles', (req, res) => {
+    console.log('Proxying to User Service:', req.method, req.url);
+    proxy.web(req, res, {
+        target: 'http://192.168.233.134:3002',
+        changeOrigin: true
+    });
 });
 
-
-app.use('/api/exercises', exerciseServiceProxy);
-app.use('/api/profiles', userServiceProxy);
-app.use('/api/progress', progressServiceProxy);
-
-app.listen(8080, () => {
-    console.log('API Gateway running on port 8080');
+app.all('/api/exercises', (req, res) => {
+    console.log('Proxying to Exercise Service:', req.method, req.url);
+    proxy.web(req, res, {
+        target: 'http://192.168.233.134:3001',
+        changeOrigin: true
+    });
 });
+
+app.all('/api/progress', (req, res) => {
+    console.log('Proxying to Progress Service:', req.method, req.url);
+    proxy.web(req, res, {
+        target: 'http://localhost:3003',
+        changeOrigin: true
+    });
+});
+
+// Error handling
+proxy.on('error', (err, req, res) => {
+    console.error('Proxy error:', err);
+    res.status(500).json({ error: err.message });
+});
+
+app.listen(8080, '0.0.0.0', () => {
+    console.log('Gateway running on port 8080');
+    console.log('Routes configured:');
+    console.log('- /api/profiles -> http://192.168.233.134:3002');
+    console.log('- /api/exercises -> http://192.168.233.134:3001');
+    console.log('- /api/progress -> http://localhost:3003');
+});
+
